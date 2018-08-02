@@ -91,21 +91,50 @@
 #include<stdint.h>
 
 void delayMs(int n);
-#define DELAY_IN_MS 500
+#define DELAY_IN_MS 100
 	
 int main(void) {
 
+    //assign base addresses of register that need changing for 
+    //blinking LED's
     uint32_t *rccAhb1Ptr    = (uint32_t *)0x40023830;
+
+    //Green LED - PG6
     uint32_t *gpiogModerPtr = (uint32_t *)0x40021800;
     uint32_t *gpiogBsrrPtr  = (uint32_t *)0x40021818;
 
-    *rccAhb1Ptr      |= 0x00000040; //enable gpioG clk
-    *gpiogModerPtr   |= 0x00001000; //Set mode bit 6 to output
+    //Orange/RED LED's - PD4/5
+    uint32_t *gpiodModerPtr = (uint32_t *)0x40020C00;
+    uint32_t *gpiodBsrrPtr  = (uint32_t *)0x40020C18;
+
+    //BLUE LED - PK3
+    uint32_t *gpiokModerPtr = (uint32_t *)0x40022800;
+    uint32_t *gpiokBsrrPtr  = (uint32_t *)0x40022818;
+
+    *rccAhb1Ptr      |= 0x00000448; //enable gpioD,G, K clk
+    *gpiogModerPtr   |= 0x00001000; //Set GPIO_G mode bit 6 to output
+    *gpiodModerPtr   |= 0x00000500; //Set GPIO_D mode bits 4/5 to output
+    *gpiokModerPtr   |= 0x00000040; //Set GPIO_K mode bits 3 to output
 
     while(1) {
-        *gpiogBsrrPtr = 0x00000040; //Set GPIO's
+        *gpiogBsrrPtr = 0x00000040; //Set Green LED
         delayMs(DELAY_IN_MS);
-        *gpiogBsrrPtr = 0x00400000; //Clear GPIO's
+        *gpiogBsrrPtr = 0x00400000; //Clear Green LED
+        delayMs(DELAY_IN_MS);
+
+        *gpiodBsrrPtr = 0x00000010; //Set Orange LED
+        delayMs(DELAY_IN_MS);
+        *gpiodBsrrPtr = 0x00100000; //Clear Orange LED
+        delayMs(DELAY_IN_MS);
+
+        *gpiodBsrrPtr = 0x00000020; //Set RED LED
+        delayMs(DELAY_IN_MS);
+        *gpiodBsrrPtr = 0x00200000; //Clear RED LED
+        delayMs(DELAY_IN_MS);
+
+        *gpiokBsrrPtr = 0x00000008; //Set BLUE LED
+        delayMs(DELAY_IN_MS);
+        *gpiokBsrrPtr = 0x00080000; //Clear BLUE LED
         delayMs(DELAY_IN_MS);
     }
 }
