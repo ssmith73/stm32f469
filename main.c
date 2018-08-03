@@ -68,8 +68,6 @@
 
 
     ___________________________________________________________________
-
-
  */
 
 /*  RCC Clock and Reset Control
@@ -90,56 +88,57 @@
  */
 #include<stdint.h>
 
+#define DELAY_IN_MS 50
+#define RCC_AHB1ENR_ADDR    (uint32_t *)0x40023830
+typedef enum {RED,GREEN,ORANGE,BLUE} colours_t;
+typedef enum {SET,CLEAR} pinState_t;
+
 void delayMs(int n);
-#define DELAY_IN_MS 100
+void driveLed(colours_t colour, pinState_t state);
 	
 int main(void) {
 
-    //assign base addresses of register that need changing for 
-    //blinking LED's
-    uint32_t *rccAhb1Ptr    = (uint32_t *)0x40023830;
+    uint32_t *ptr;
+   //setup the AHB1 clock
+    ptr  = RCC_AHB1ENR_ADDR;
+    *ptr |= 0x00000448; //enable gpioD,G, K clk
 
-    //Green LED - PG6
-    uint32_t *gpiogModerPtr = (uint32_t *)0x40021800;
-    uint32_t *gpiogBsrrPtr  = (uint32_t *)0x40021818;
+   //Enable PD4 & 5 as outputs 
+    ptr   =   (uint32_t *)0x40020C00;
+    *ptr  |= 0x00000500; 
 
-    //Orange/RED LED's - PD4/5
-    uint32_t *gpiodModerPtr = (uint32_t *)0x40020C00;
-    uint32_t *gpiodBsrrPtr  = (uint32_t *)0x40020C18;
+   //Enable PG6 Green LED as output
+    ptr   =  (uint32_t *)0x40021800;
+    *ptr |= 0x00001000; 
 
-    //BLUE LED - PK3
-    uint32_t *gpiokModerPtr = (uint32_t *)0x40022800;
-    uint32_t *gpiokBsrrPtr  = (uint32_t *)0x40022818;
-
-    *rccAhb1Ptr      |= 0x00000448; //enable gpioD,G, K clk
-    *gpiogModerPtr   |= 0x00001000; //Set GPIO_G mode bit 6 to output
-    *gpiodModerPtr   |= 0x00000500; //Set GPIO_D mode bits 4/5 to output
-    *gpiokModerPtr   |= 0x00000040; //Set GPIO_K mode bits 3 to output
+   //Enable PK3 Blue LED as output
+    ptr   = (uint32_t *)0x40022800;
+    *ptr |= 0x00000040; 
 
     while(1) {
-        *gpiogBsrrPtr = 0x00000040; //Set Green LED
+        driveLed(GREEN,SET);
         delayMs(DELAY_IN_MS);
-        *gpiogBsrrPtr = 0x00400000; //Clear Green LED
-        delayMs(DELAY_IN_MS);
-
-        *gpiodBsrrPtr = 0x00000010; //Set Orange LED
-        delayMs(DELAY_IN_MS);
-        *gpiodBsrrPtr = 0x00100000; //Clear Orange LED
+        driveLed(GREEN,CLEAR);
         delayMs(DELAY_IN_MS);
 
-        *gpiodBsrrPtr = 0x00000020; //Set RED LED
+        driveLed(ORANGE,SET);
         delayMs(DELAY_IN_MS);
-        *gpiodBsrrPtr = 0x00200000; //Clear RED LED
+        driveLed(ORANGE,CLEAR);
         delayMs(DELAY_IN_MS);
 
-        *gpiokBsrrPtr = 0x00000008; //Set BLUE LED
+        driveLed(RED,SET);
         delayMs(DELAY_IN_MS);
-        *gpiokBsrrPtr = 0x00080000; //Clear BLUE LED
+        driveLed(RED,CLEAR);
+        delayMs(DELAY_IN_MS);
+
+        driveLed(BLUE,SET);
+        delayMs(DELAY_IN_MS);
+        driveLed(BLUE,CLEAR);
         delayMs(DELAY_IN_MS);
     }
 }
 
-// 16MHz delay
+// (Rough) delay in mS, off a 16MHz delay
 void delayMs(int n) {
     uint16_t i;
     for(;n>0;n--)
@@ -147,3 +146,33 @@ void delayMs(int n) {
 }
 
 
+void driveLed(colours_t colour, pinState_t state) {
+    uint32_t *ptr;
+
+    switch(colour){
+        case RED:
+        ptr =  (uint32_t *)0x40020C18; //addr of GPIOD RED (PD5) BSRR reg
+        *ptr = (state == SET) ? 
+            0x00000020 : //Set RED LED 
+            0x00200000; //Clear RED LED
+        break;
+        case GREEN:
+        ptr = (uint32_t *)0x40021818;//addr of GPIOG GREEN (PG6) BSRR reg
+        *ptr = (state == SET) ? 
+            0x00000040 : //Set Green LED 
+            0x00400000; //Clear Green LED
+        break;
+        case ORANGE:
+        ptr = (uint32_t *)0x40020C18;//addr of GPIOD ORANGE (PD4) BSRR reg
+        *ptr = (state == SET) ? 
+            0x00000010 : //Set Green LED 
+            0x00100000; //Clear Green LED
+        break;
+        case BLUE:
+        ptr = (uint32_t *)0x40022818;//addr of GPIOK Blue (PK3) BSRR reg
+        *ptr = (state == SET) ? 
+            0x00000008 : //Set Blue LED 
+            0x00080000; //Clear Blue LED
+        break;
+    }
+}
