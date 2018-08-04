@@ -66,7 +66,7 @@
     GPIOG_AFRL   0x4002_1820 GPIOG_AFRH   0x4002_1824
 
 
-
+sad
     ___________________________________________________________________
  */
 
@@ -178,21 +178,23 @@ STEPS TO TAKE TO USE UART3 ON DISCO BOARD (for write)
 
 #include<stdint.h>
 
-#define DELAY_IN_MS 500
+#define DELAY_IN_MS 250
 #define RCC_AHB1ENR_ADDR    (uint32_t *)0x40023830
 typedef enum {RED,GREEN,ORANGE,BLUE} colours_t;
 typedef enum {SET,CLEAR} pinState_t;
 
 void delayMs(int n);
 void driveLed(colours_t colour, pinState_t state);
+void initLeds(void);
 void toggleLeds(void);
 void usart3_init(void);
 void usart3_write(uint32_t c);
+uint8_t    usart3_read(void);
 	
 int main(void) {
 
     /*
-        Send a string 'Sean' to UART3 - which is connected
+        Send a string 'Sean Smith!' to UART3 - which is connected
         on the STM32F469NI Discovery board to portB 10/11 (Rx/Tx)
 
         By default clocks runs at 16MHZ, 
@@ -200,17 +202,42 @@ int main(void) {
         PB11 is Tx - using AF7
      */
 
+    uint8_t ch;
     usart3_init();
+    initLeds();
+    
 
     while(1) {
+        ch = usart3_read();
+        if(ch == '1')
+          driveLed(RED,SET);
+        if(ch == '0')
+          driveLed(RED,CLEAR);
         usart3_write('S');
         usart3_write('e');
         usart3_write('a');
         usart3_write('n');
+        usart3_write(' ');
+        usart3_write('S');
+        usart3_write('m');
+        usart3_write('i');
+        usart3_write('t');
+        usart3_write('h');
+        usart3_write('!');
+        usart3_write('\n');
         delayMs(DELAY_IN_MS);
     }
 }
 
+uint8_t usart3_read(void) {
+    
+    uint32_t *ptr = (uint32_t *)0x40004800; //point to USART_SR
+    uint32_t *usartDrPtr =(uint32_t *)0x40004804; //point to USART_DR
+    
+    while(!(*ptr & 0x00000020)) {} //wait until char arrives
+    return *usartDrPtr;
+
+}
 void usart3_init(){
 
     uint32_t *ptr;
@@ -220,21 +247,22 @@ void usart3_init(){
     *ptr |= 0x00000002; 
 
     //Enable GPIOB clock - APB1
-
     //Addresses of RCC 0x4002_3800→3BFF 
     //set RCC_APB1ENR[18]
     ptr = (uint32_t *) 0x40023840;
     *ptr |= 0x00040000;
 
     //Configure B11 for USART3 Tx GPIOx_AFH[11]
+    //Configure B10 for USART3 Rx GPIOx_AFH[10]
     //0x4002.0400 - 0x4002 07FF GPIOB
     //GPIOB 4002.0400, offset for AFH 0x24
     ptr =  (uint32_t *)0x40020424;
-    *ptr |= 0x00000700;
+    *ptr |= 0x00007700;
 
+    //Mode bits for P10 to AF, offset for GPIOx_MODER 0x00
     //Mode bits for P11 to AF, offset for GPIOx_MODER 0x00
     ptr = (uint32_t *) 0x40020400;
-    *ptr |= 0x00200000;
+    *ptr |= 0x00A00000;
 
     //Set baud rate = 11500 to match ST LINK
     //USART3 base addr = 0x4000.4800, offset for USART_BRR 0x8
@@ -243,8 +271,9 @@ void usart3_init(){
     *ptr |= 0x0000008B;
 
     //USART3_CR1 - set transmit enable, TE(bit 3), offset 0x0c
+    //USART3_CR1 - set receive  enable, TE(bit 2), offset 0x0c
     ptr   =  (uint32_t *)0x4000480C;
-    *ptr |= 0x00000008;
+    *ptr |= 0x0000000C;
 
     //USART3_CR2 - 1 stop bit[13:12], offset 0x10
     ptr   =  (uint32_t *)0x40004810;
@@ -277,7 +306,7 @@ void delayMs(int n) {
         for(i=0;i<3195;i++);
 }
 
-void toggleLeds(void) {
+void initLeds() {
 
     uint32_t *ptr;
    //setup the AHB1 clock
@@ -295,6 +324,10 @@ void toggleLeds(void) {
    //Enable PK3 Blue LED as output
     ptr   = (uint32_t *)0x40022800;
     *ptr |= 0x00000040; 
+
+}
+void toggleLeds(void) {
+
 
     driveLed(GREEN,SET);
     delayMs(DELAY_IN_MS);
