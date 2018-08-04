@@ -358,26 +358,26 @@ void driveLed(colours_t colour, pinState_t state) {
         case RED:
         ptr =  (uint32_t *)0x40020C18; //addr of GPIOD RED (PD5) BSRR reg
         *ptr = (state == SET) ? 
-            0x00000020 : //Set RED LED 
-            0x00200000; //Clear RED LED
+            0x00200000 :  //Set RED LED
+            0x00000020;   //Clear RED LED 
         break;
         case GREEN:
         ptr = (uint32_t *)0x40021818;//addr of GPIOG GREEN (PG6) BSRR reg
         *ptr = (state == SET) ? 
-            0x00000040 : //Set Green LED 
-            0x00400000; //Clear Green LED
+            0x00400000 : //Set Green LED
+            0x00000040;  //Clear Green LED 
         break;
         case ORANGE:
         ptr = (uint32_t *)0x40020C18;//addr of GPIOD ORANGE (PD4) BSRR reg
         *ptr = (state == SET) ? 
-            0x00000010 : //Set Green LED 
-            0x00100000; //Clear Green LED
+            0x00100000 : //Set Green LED
+            0x00000010;  //Clear Green LED 
         break;
         case BLUE:
         ptr = (uint32_t *)0x40022818;//addr of GPIOK Blue (PK3) BSRR reg
         *ptr = (state == SET) ? 
-            0x00000008 : //Set Blue LED 
-            0x00080000; //Clear Blue LED
+            0x00080000 : //Set Blue LED
+            0x00000008;  //Clear Blue LED 
         break;
     }
 }
